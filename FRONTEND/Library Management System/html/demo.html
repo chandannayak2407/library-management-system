@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Transactions</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background-color: #f8f9fa;
+      }
+
+      .container {
+        padding: 20px;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+      }
+
+      .actions input[type="text"] {
+        padding: 8px;
+        width: 250px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+      }
+
+      .actions button {
+        padding: 8px 15px;
+        margin-left: 5px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .actions button:hover {
+        background-color: #0056b3;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: white;
+      }
+
+      table th,
+      table td {
+        border: 1px solid #dee2e6;
+        padding: 10px;
+        text-align: center;
+      }
+
+      table th {
+        background-color: #007bff;
+        color: white;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 999;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+      }
+
+      .modal-content {
+        background-color: white;
+        margin: 10% auto;
+        padding: 20px;
+        width: 400px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+      }
+
+      .modal-content h3 {
+        margin-top: 0;
+        text-align: center;
+      }
+
+      .modal-content input,
+      .modal-content select {
+        width: 100%;
+        padding: 8px;
+        margin: 8px 0;
+        box-sizing: border-box;
+      }
+
+      .btn-group {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .btn-group button {
+        padding: 8px 15px;
+        width: 48%;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      #btnSave {
+        background-color: #28a745;
+        color: white;
+      }
+
+      #btnSave:hover {
+        background-color: #218838;
+      }
+
+      #btnCancel {
+        background-color: #dc3545;
+        color: white;
+      }
+
+      #btnCancel:hover {
+        background-color: #c82333;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="container">
+      <div class="actions">
+        <input
+          type="text"
+          id="searchTransaction"
+          placeholder="Search transaction..."
+        />
+        <div>
+          <button id="btnIssueBook">Issue Book</button>
+          <button id="btnReturnBook">Return Book</button>
+          <button id="btnExport">Export</button>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Book</th>
+            <th>Member</th>
+            <th>Date</th>
+            <th>Amount</th>
+            <th>Fine</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="transactionTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="modal" id="transactionModal">
+      <div class="modal-content">
+        <h3 id="modalTitle"></h3>
+        <input type="text" id="book" placeholder="Book Name" />
+        <input type="text" id="member" placeholder="Member Name" />
+        <input type="date" id="issueDate" />
+        <input
+          type="number"
+          id="perDayAmount"
+          placeholder="Rent charge per day"
+        />
+        <input
+          type="number"
+          id="rentalDays"
+          placeholder="Rental Days (in days)"
+        />
+
+        <label id="lAmount" style="font-size: 12px">Rental amount</label>
+        <input type="number" id="amount" placeholder="Amount" readonly />
+        <label id="lFine" style="font-size: 12px">Fine amount</label>
+        <input type="number" id="fine" placeholder="Fine (if any)" readonly />
+        <label id="lTotalAmount" style="font-size: 12px"
+          >Total amount to pay</label
+        >
+        <input
+          type="number"
+          id="totalAmount"
+          placeholder="Total amount to pay"
+          readonly
+        />
+        <div class="btn-group">
+          <button id="btnSave">Save</button>
+          <button id="btnCancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      fetch("navbar.html")
+        .then((response) => response.text())
+        .then((data) => {
+          document.getElementById("navbar-placeholder").innerHTML = data;
+        });
+
+      const transactionApi = "http://localhost:8080/api/transactions";
+      let currentActionType = "";
+
+      document.addEventListener("DOMContentLoaded", () => {
+        loadTransactions();
+
+        document.getElementById("rentalDays").addEventListener("input", () => {
+          const days =
+            parseInt(document.getElementById("rentalDays").value) || 0;
+          const amount = parseInt(document.getElementById("perDayAmount").value) || 0;
+          document.getElementById("amount").value = days * amount;
+        });
+
+        document
+          .getElementById("btnIssueBook")
+          .addEventListener("click", () => {
+            currentActionType = "Issue";
+            document.getElementById("modalTitle").innerText = "Issue Book";
+            document.getElementById("fine").style.display = "none";
+            document.getElementById("totalAmount").style.display = "none";
+            document.getElementById("rentalDays").style.display = "block";
+            document.getElementById("lFine").style.display = "none";
+            document.getElementById("lTotalAmount").style.display = "none";
+            document.getElementById("perDayAmount").style.display = "block";
+            clearModalFields();
+            openModal();
+          });
+
+        document
+          .getElementById("btnReturnBook")
+          .addEventListener("click", () => {
+            currentActionType = "Return";
+            document.getElementById("modalTitle").innerText = "Return Book";
+            document.getElementById("fine").style.display = "block";
+            document.getElementById("totalAmount").style.display = "block";
+            document.getElementById("rentalDays").style.display = "none";
+            document.getElementById("lFine").style.display = "block";
+            document.getElementById("lTotalAmount").style.display = "block";
+            document.getElementById("perDayAmount").style.display = "none";
+            clearModalFields();
+            openModal();
+          });
+
+        document
+          .getElementById("btnCancel")
+          .addEventListener("click", closeModal);
+        document
+          .getElementById("btnSave")
+          .addEventListener("click", saveTransaction);
+        document
+          .getElementById("btnExport")
+          .addEventListener("click", exportToExcel);
+
+        document
+          .getElementById("searchTransaction")
+          .addEventListener("input", (e) => {
+            const query = e.target.value.toLowerCase();
+            document
+              .querySelectorAll("#transactionTableBody tr")
+              .forEach((row) => {
+                row.style.display = row.innerText.toLowerCase().includes(query)
+                  ? ""
+                  : "none";
+              });
+          });
+
+        window.addEventListener("click", (e) => {
+          if (e.target === document.getElementById("transactionModal")) {
+            closeModal();
+          }
+        });
+      });
+
+      function openModal() {
+        document.getElementById("transactionModal").style.display = "block";
+      }
+
+      function closeModal() {
+        document.getElementById("transactionModal").style.display = "none";
+      }
+
+      function clearModalFields() {
+        document.getElementById("book").value = "";
+        document.getElementById("member").value = "";
+        // Set today's date in yyyy-MM-dd format
+        const today = new Date().toISOString().split("T")[0];
+        document.getElementById("issueDate").value = today;
+        document.getElementById("amount").value = "";
+        document.getElementById("fine").value = "";
+        document.getElementById("rentalDays").value = "";
+      }
+
+      function saveTransaction() {
+        const transaction = {
+          type: currentActionType,
+          book: document.getElementById("book").value,
+          member: document.getElementById("member").value,
+          issueDate: document.getElementById("issueDate").value,
+          rentalDays:
+            parseInt(document.getElementById("rentalDays").value) || 0,
+          amount: parseFloat(document.getElementById("amount").value) || 0,
+          fine: parseFloat(document.getElementById("fine").value) || 0,
+        };
+
+        const endpoint = currentActionType === "Return" ? "return" : "issue";
+
+        fetch(`${transactionApi}/${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(transaction),
+        }).then(async (res) => {
+          if (res.ok) {
+            closeModal();
+            loadTransactions();
+          } else {
+            let errorMessage = "Failed to save transaction.";
+            try {
+              const errorData = await res.json();
+              if (errorData.message) {
+                errorMessage = errorData.message;
+              } else if (typeof errorData === "string") {
+                errorMessage = errorData;
+              }
+            } catch {
+              const text = await res.text();
+              if (text) errorMessage = text;
+            }
+            alert(errorMessage);
+          }
+        });
+      }
+
+      function loadTransactions() {
+        fetch(`${transactionApi}/recent`)
+          .then((res) => res.json())
+          .then((transactions) => {
+            const tbody = document.getElementById("transactionTableBody");
+            tbody.innerHTML = "";
+            transactions.forEach((txn) => {
+              const row = document.createElement("tr");
+              row.innerHTML = `
+                <td>${txn.type}</td>
+                <td>${txn.book}</td>
+                <td>${txn.member}</td>
+                <td>${txn.issueDate}</td>
+                <td>${txn.amount}</td>
+                <td>${txn.fine}</td>
+                <td>
+                  <button onclick="editTransaction('${txn.id}')">Edit</button>
+                  <button onclick="deleteTransaction('${txn.id}')">Delete</button>
+                </td>`;
+              tbody.appendChild(row);
+            });
+          })
+          .catch((err) => console.error("Failed to load transactions:", err));
+      }
+
+      function deleteTransaction(id) {
+        fetch(`${transactionApi}/delete/${id}`, { method: "DELETE" }).then(
+          (res) => {
+            if (res.ok) loadTransactions();
+          }
+        );
+      }
+
+      function exportToExcel() {
+        window.open(`${transactionApi}/export`, "_blank");
+      }
+
+      function editTransaction(id) {
+        alert("Edit feature not implemented yet for ID: " + id);
+      }
+    </script>
+  </body>
+</html>

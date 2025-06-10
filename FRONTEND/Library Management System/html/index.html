@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Login - LMS</title>
+  
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .login-container {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+
+    .login-container h2 {
+      text-align: center;
+    }
+
+    .login-container input,
+    .login-container button {
+      width: 94%;
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .login-container button {
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    #error-msg {
+      color: red;
+      text-align: center;
+    }
+    .logo {
+    width : 150px;
+    padding : 20px;
+  }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h2><img class="logo" src="gmslogo.jpeg"><br>Admin Login</h2>
+    <form id="loginForm">
+      <label for="username">Username</label>
+      <input type="text" id="username" required>
+      <label for="password">Password</label>
+      <input type="password" id="password" required>
+      <button type="submit"><a href="dashboard.html">Submit</a></button>
+    </form>
+    <p id="error-msg"></p>
+  </div>
+
+  <script src="js/auth.js"></script>
+</body>
+</html>
